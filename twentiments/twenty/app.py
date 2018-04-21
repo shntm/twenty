@@ -10,6 +10,7 @@ import nltk.classify.util
 from requests_oauthlib import OAuth1
 import tweepy
 import json
+import re
 
 globalClassifier = "empty"
 
@@ -66,13 +67,109 @@ def removeStopWords(words):
  	return [word for word in words if word not in stopwords.words('english')]
 
 def removeSymbols(words):
-	invalidSymbols = [":", "-", ")", "("]
+	invalidSymbols = [":", "-", ")", "(", "@", "#", ";", "http", "https", ",", "a", "the", "an", "i", "he", "she", "it", "is", "was", "you", "they", "we", "I", "us", "our", "has", "had"]
 	return [word for word in words if word not in invalidSymbols]
+
+def removeUrls(words):
+	reg = re.compile('\A\//[a-z0-9.\/]+')
+	for word in words:
+		matchObj = reg.match(word)
+		if matchObj:
+			words.remove(word)
+	return words
+
+def removeNonWords(words):
+	returnList = []
+	for word in words:
+		if wordnet.synsets(word):
+			returnList.append(word)
+	return returnList
+
+def changeToWill(words):
+	i=0
+	for word in words:
+		if word == "'ll":
+			words[i] = "will"
+		i+=1
+	return words
+
+def removeContractions(sentence):
+	words = sentence.split(' ')
+	substituteDict = {
+	"aren\'t" : "are not",
+	"can\'t" : "can not",
+	"couldn\'t" : "could not",
+	"didn\'t" : "did not",
+	"doesn\'t" : "does not",
+	"don\'t" : "do not",
+	"hadn\'t" : "had not",
+	"hasn\'t" : "has not",
+	"haven\'t" : "have not",
+	"he\'d" : "he had",
+	"he\'ll" : "he will",
+	"he\'s" : "he is",
+	"i\'d" : "I had",
+	"i\'ll" : "I will",
+	"i\'m" : "I am",
+	"i\'ve" : "I have",
+	"isn\'t" : "is not",
+	"it\'s" : "it is",
+	"let\'s" : "let us",
+	"mustn\'t" : "must not",
+	"shan\'t" : "shall not",
+	"she\'d" : "she had",
+	"she\'ll" : "she will",
+	"she\'s" : "she is",
+	"shouldn\'t" : "should not",
+	"that\'s" : "that is",
+	"there\'s" : "there is",
+	"they\'d" : "they had",
+	"they\'ll" : "they will",
+	"they\'re" : "they are",
+	"they\'ve" : "they have",
+	"we\'d" : "we had",
+	"we\'re" : "we are",
+	"we\'ve" : "we have",
+	"weren\'t" : "were not",
+	"what\'ll" : "what will",
+	"what\'re" : "what are",
+	"what\'s" : "what is",
+	"what\'ve" : "what have",
+	"where\'s" : "where is",
+	"who\'d" : "who had",
+	"who\'ll" : "who will",
+	"who\'re" : "who are",
+	"who\'s" : "who is",
+	"who\'ve" : "who have",
+	"won\'t" : "will not",
+	"wouldn\'t" : "would not",
+	"you\'d" : "you had",
+	"you\'ll" : "you will",
+	"you\'re" : "you are",
+	"you\'ve" : "you have",
+	"y'all" : "you all",
+	"yall" : "you all",
+	"u" : "you",
+	"wanna": "want to",
+	"gonna" : "going to",
+	}
+	i=0
+	for word in words:
+		if substituteDict.get(word) is not None:
+			newWord = substituteDict.get(word)
+			wordList = newWord.split(' ')
+			words[i] = wordList[0]
+			if len(wordList) > 1:
+				words.insert(i+1, wordList[1])
+		i+=1
+	sentence = " ".join(words)
+	return sentence
 
 def cleanUpData(listOfTweets):
 	i = 0;
 	for tweet in listOfTweets:
-		listOfTweets[i] = removeSymbols(removeStopWords(word_tokenize(tweet)))
+		listOfTweets[i] = removeUrls(removeSymbols(changeToWill(word_tokenize(removeContractions(tweet.lower())))))
+		print(listOfTweets[i])
 		i+=1
 	return listOfTweets
 
